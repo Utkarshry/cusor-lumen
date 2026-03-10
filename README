@@ -1,0 +1,131 @@
+# LUMEN by CuSoR — Deployment Guide
+
+## Stack
+- **Next.js 14** (App Router) + TypeScript
+- **Tailwind CSS** for styling
+- **Supabase** — database + auth (free tier)
+- **Resend** — newsletter emails (free tier: 3K emails/month)
+- **Vercel** — hosting (free tier, same as before)
+- **rss-parser** — live arXiv / Nature feeds (no API key needed)
+
+---
+
+## Step 1: GitHub Setup
+
+```bash
+# Create a NEW repo on github.com/Utkarshry — call it "cusor-lumen"
+# Then in this folder:
+
+git init
+git add .
+git commit -m "feat: initial LUMEN app"
+git remote add origin https://github.com/Utkarshry/cusor-lumen.git
+git push -u origin main
+```
+
+---
+
+## Step 2: Supabase Setup
+
+1. Go to **supabase.com** → New Project
+2. Copy your Project URL and anon key from **Settings → API**
+3. Go to **SQL Editor** and run the SQL from `src/lib/supabase.ts`
+   (the big comment block — copy everything between `/*` and `*/`)
+
+---
+
+## Step 3: Resend Setup (Newsletter)
+
+1. Go to **resend.com** → Sign up free
+2. Add your domain `cusor.me` under **Domains** (verify DNS)
+3. Create an API key
+
+---
+
+## Step 4: Vercel Setup
+
+1. Go to **vercel.com** → Import your `cusor-lumen` GitHub repo
+2. In **Environment Variables**, add:
+
+```
+NEXT_PUBLIC_SUPABASE_URL        = https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY   = eyJ...
+SUPABASE_SERVICE_ROLE_KEY       = eyJ...
+RESEND_API_KEY                  = re_...
+RESEND_FROM_EMAIL               = newsletter@cusor.me
+NEXT_PUBLIC_APP_URL             = https://cusor.me
+```
+
+3. Under **Domains**, add `cusor.me` (same as before — just point it here)
+4. Click **Deploy**
+
+---
+
+## Step 5: Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Copy env file
+cp .env.example .env.local
+# Fill in your values in .env.local
+
+# Run dev server
+npm run dev
+# Opens at http://localhost:3000
+```
+
+---
+
+## What's Live After Deployment
+
+| Route | What it does |
+|-------|-------------|
+| `cusor.me/` | Main LUMEN feed app |
+| `cusor.me/subscribe` | Newsletter signup page |
+| `cusor.me/api/rss` | Live paper feed from arXiv |
+| `cusor.me/api/xp` | XP award endpoint |
+| `cusor.me/api/newsletter` | Subscribe + confirm endpoints |
+
+---
+
+## RSS Sources (No API Key Needed)
+
+Papers pull from these free feeds automatically:
+- **arXiv** — cs.AI, cs.LG, q-bio.NC, physics.ao-ph, econ.GN, etc.
+- **Nature** — neuroscience subject feed
+- All feeds update every 30 minutes via Next.js ISR caching
+
+---
+
+## Extending Later
+
+### Add Supabase Auth (login/signup)
+```bash
+npm install @supabase/auth-helpers-nextjs
+```
+Then wrap the app with the Supabase Auth provider.
+
+### Add Make.com Newsletter Automation
+1. Create a Make.com scenario
+2. RSS Feed → HTTP (arXiv) → GPT summarizer → Resend email
+3. Trigger: Daily at 8am
+4. Use your `/api/newsletter` endpoint subscriber list
+
+### Add Text-to-Speech (Audio papers)
+- Use ElevenLabs or OpenAI TTS API
+- Set `hasAudio: true` on papers after generating audio
+
+---
+
+## Troubleshooting
+
+**"Cannot find module" on Vercel build**
+→ Run `npm install` locally, commit `package-lock.json`
+
+**RSS returns empty**
+→ arXiv sometimes rate-limits; app falls back to mock data automatically
+
+**404 on cusor.me**
+→ In Vercel dashboard, confirm `cusor.me` is added under Project Settings → Domains
